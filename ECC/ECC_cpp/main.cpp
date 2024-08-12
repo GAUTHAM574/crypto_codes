@@ -4,7 +4,7 @@
 #include<random>
 #include<vector>
 using namespace std;
-
+long long mem = 0;
 // point is a struct type with x and y coordinates of a point.
 struct point{
     long long x, y;
@@ -46,37 +46,41 @@ private:
     void set_generator();
     void generate_keys();
 
+    // method for decryption
+    message* decrypt(cryptedMessage *C);
 public:
     point * publicKey; //Public key
     point * generator; //Generator
     
-    bool is_not_prime(long long p);
+    bool is_suitable_prime(long long p);
     // constructor 
     ecc(long long p, long long a, long long b);
 
-    // methods for encryption and decryption
+    // methods for encryption
     message* create_message(long long x, long long y);
     cryptedMessage* encrypt(message *M);
-    message* decrypt(cryptedMessage *C);
-    
 
+    // backdoor function for decryption
+    message* decrypt_backdoor(cryptedMessage *C);
 };
 
-// is_not_prime check is a number is not prime
-bool ecc::is_not_prime(long long p){
-    if (p < 2) return true;
+// is_suitable_prime check is a number is of format 4n+3 and is prime.
+bool ecc::is_suitable_prime(long long p){
+    if (p % 4 != 3) return false;
+    if (p < 2) return false;
     long pSqrt = sqrt(p);
     for (long long i = 2; i <= pSqrt; i++)
         if (p % i == 0)
-            return true;
-    return false;
+            return false;
+    return true;
 }
+
 
 // Constructor that creates elliptic curve y^2 = x^3 + ax + b with given parameters
 ecc::ecc(long long p, long long a, long long b)
 {   
-    if( is_not_prime(p) ){
-        cout<<"Error: p must be a prime number greater than 2.\n";
+    if( !is_suitable_prime(p) ){
+        cout<<"Error: p must be a prime number greater than 2 of format 4n + 3.\n";
         exit(1);
     }
     ecc::p = p;
@@ -143,6 +147,8 @@ long long ecc::power(long long base, long long exp) {
 
 // create_points creates a point dynamically and return a pointer to it.
 point * ecc::create_point(long long x, long long y){
+    mem++;
+
     return new point({x,y});
 }
 
@@ -189,6 +195,8 @@ point * ecc::sub_points(point *p1, point *p2){
     if (is_identity_point(p2) ) return p1;
     point *t = ecc::create_point(p2->x, mod(-(p2->y)));
     point * res = add_points(p1, t);
+    mem--;
+
     delete t;
     return res;
 }
@@ -224,7 +232,6 @@ void ecc::set_generator(){
     vector<point*> cyclic_sub_group;
     long long exponent = (ecc::p + 1) / 4;
     for( long long x = 1; x < ecc::p; x++){
-        cout<<x<<endl;
         long long y2 = x*x*x + a*x + b; // y2 = x3 + ax + b - elliptic curve
         if (is_quadradic_non_residue(y2)) {
             point *p1 = ecc::create_point(mod(x), power(y2, exponent));
@@ -254,7 +261,6 @@ void ecc::set_generator(){
 void ecc::generate_keys(){
     ecc::privateKey = get_random();
     ecc::publicKey = multiply_point(ecc::privateKey, ecc::generator);
-
     cout<<"Private Key: "<<privateKey<<endl;
     cout<<"Public Key: ("<<ecc::publicKey->x<<", "<<ecc::publicKey->y<<")\n";
     return;
@@ -262,12 +268,14 @@ void ecc::generate_keys(){
 
 // create_message creates a message dynamically and return a pointer to it.
 message * ecc::create_message(long long x, long long y) {
+
     return new message({x,y});
 }
 
 // encrypt encrypts a message using public key.
 cryptedMessage* ecc::encrypt(message *m){
     cryptedMessage *C = new cryptedMessage;
+
     long long k = get_random();
     cout<<"K : "<<k<<endl;
     C->C1 = ecc::multiply_point(k, ecc::generator); 
@@ -281,12 +289,17 @@ cryptedMessage* ecc::encrypt(message *m){
 // decrypt decrypts a message using private key.
 message* ecc::decrypt(cryptedMessage *C){
     point * M = sub_points(C->C2, multiply_point(ecc::privateKey, C->C1));
+
     message *m = new message;
     m->x = M->x; m->y = M->y;
     return m;
 }
+
+message* ecc::decrypt_backdoor(cryptedMessage * C){
+    return decrypt(C);
+}
 int main(){
-    ecc e = ecc(1000000007,1,6);
+    ecc e = ecc(11,1,6);
 
     message *m = new message;
     m->x = 2; m->y = 4;
@@ -295,7 +308,7 @@ int main(){
     cout<<"C1: ("<<C->C1->x<<", "<<C->C1->y<<")\n";
     cout<<"C2: ("<<C->C2->x<<", "<<C->C2->y<<")\n";
 
-    message *m2 = e.decrypt(C);
+    message *m2 = e.decrypt_backdoor(C);
     cout<<"Decrypted Message: ("<<m2->x<<", "<<m2->y<<")\n";
     delete m; delete C; delete m2;
     return 0;

@@ -1,5 +1,4 @@
 - This directory contains code in c++ for Elliptic Curve Cryptography.
 - This performs key generation, encryption and decryption.
-- There are two modes, learning and perform modes.
-- In learning mode, each step will be performed, by exposing the steps.
-- In perform mode, steps will be performed without exposing them.
+- This purely for educational purposes to help students understand how ECC is used.
+- Further more recommendations and improvements can also be done, if you are interested. 
