@@ -1,7 +1,8 @@
 #include<cstdlib>
 #include<iostream>
-#include<vector>
+#include<math.h>
 #include<random>
+#include<vector>
 using namespace std;
 
 // point is a struct type with x and y coordinates of a point.
@@ -49,6 +50,7 @@ public:
     point * publicKey; //Public key
     point * generator; //Generator
     
+    bool is_not_prime(long long p);
     // constructor 
     ecc(long long p, long long a, long long b);
 
@@ -60,9 +62,23 @@ public:
 
 };
 
+// is_not_prime check is a number is not prime
+bool ecc::is_not_prime(long long p){
+    if (p < 2) return true;
+    long pSqrt = sqrt(p);
+    for (long long i = 2; i <= pSqrt; i++)
+        if (p % i == 0)
+            return true;
+    return false;
+}
+
 // Constructor that creates elliptic curve y^2 = x^3 + ax + b with given parameters
 ecc::ecc(long long p, long long a, long long b)
-{
+{   
+    if( is_not_prime(p) ){
+        cout<<"Error: p must be a prime number greater than 2.\n";
+        exit(1);
+    }
     ecc::p = p;
     ecc::a = a;
     ecc::b = b;
@@ -79,7 +95,7 @@ long long ecc::extended_euclidean(long long a, long long b, long long s1, long l
         long long t = b; b = a; a = t;
     }
     if(b == 0 ){
-        cout<<"unexpected error\n";
+        cout<<"Error: unexpected error\n";
         exit(1);
     }
     long long q = mod(a/b);
@@ -181,7 +197,7 @@ point * ecc::sub_points(point *p1, point *p2){
 point *ecc::multiply_point( long long x, point *p1){
     point *t; // temporary point
     if( x <= 0 ){
-        cout<<"Cannot multiply point with a negative integer or zero\n";
+        cout<<"Error: cannot multiply point with a negative integer or zero\n";
         exit(1);
     } 
     else if (x == 1 || is_identity_point(p1)){
@@ -208,6 +224,7 @@ void ecc::set_generator(){
     vector<point*> cyclic_sub_group;
     long long exponent = (ecc::p + 1) / 4;
     for( long long x = 1; x < ecc::p; x++){
+        cout<<x<<endl;
         long long y2 = x*x*x + a*x + b; // y2 = x3 + ax + b - elliptic curve
         if (is_quadradic_non_residue(y2)) {
             point *p1 = ecc::create_point(mod(x), power(y2, exponent));
@@ -218,7 +235,7 @@ void ecc::set_generator(){
     }
     long long len = cyclic_sub_group.size();
     if (len == 0) {
-        cout << "No point in the cyclic subgroup." << endl;
+        cout << "Warning: no point in the cyclic subgroup." << endl;
         exit(0);
     }
     
@@ -229,7 +246,7 @@ void ecc::set_generator(){
             delete cyclic_sub_group[i];
         }
     }
-    cout<<"Generator : ("<<generator->x << ", "<<generator->y<<")\n";
+    cout<<"Generator: ("<<generator->x << ", "<<generator->y<<")\n";
     return;
 }
 
@@ -238,8 +255,8 @@ void ecc::generate_keys(){
     ecc::privateKey = get_random();
     ecc::publicKey = multiply_point(ecc::privateKey, ecc::generator);
 
-    cout<<"Private Key :"<<privateKey<<endl;
-    cout<<"Public Key : ("<<ecc::publicKey->x<<", "<<ecc::publicKey->y<<")\n";
+    cout<<"Private Key: "<<privateKey<<endl;
+    cout<<"Public Key: ("<<ecc::publicKey->x<<", "<<ecc::publicKey->y<<")\n";
     return;
 }
 
@@ -256,7 +273,6 @@ cryptedMessage* ecc::encrypt(message *m){
     C->C1 = ecc::multiply_point(k, ecc::generator); 
     point * M = ecc::create_point(m->x, m->y);
     point * t = multiply_point(k, ecc::publicKey);
-    cout<<"C2 Subpart : ("<<t->x<<", "<<t->y<<")\n";
     C->C2 = add_points(M, t);
     delete M;
     return C;
@@ -270,18 +286,17 @@ message* ecc::decrypt(cryptedMessage *C){
     return m;
 }
 int main(){
-    ecc e = ecc(11,1,6);
+    ecc e = ecc(1000000007,1,6);
 
     message *m = new message;
     m->x = 2; m->y = 4;
     cryptedMessage *C = e.encrypt(m);
     cout<<"Ciphered Text Message\n";
-    cout<<C->C1->x<<" "<<C->C1->y<<endl;
-    cout<<C->C2->x<<" "<<C->C2->y<<endl;
+    cout<<"C1: ("<<C->C1->x<<", "<<C->C1->y<<")\n";
+    cout<<"C2: ("<<C->C2->x<<", "<<C->C2->y<<")\n";
 
     message *m2 = e.decrypt(C);
-    cout<<"Decrypted Message\n";
-    cout<<m2->x<<" "<<m2->y<<endl;
+    cout<<"Decrypted Message: ("<<m2->x<<", "<<m2->y<<")\n";
     delete m; delete C; delete m2;
     return 0;
 }
