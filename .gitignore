@@ -1,2 +1,2 @@
-./ECC/ECC_cpp/*.exe
-.vscode
+/ECC/ECC_cpp/*.exe
+/.vscode
