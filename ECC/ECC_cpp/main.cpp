@@ -2,10 +2,10 @@
 #include<iostream>
 #include "ecc.h"
 int main(){
-    ecc e = ecc(11,1,6);
+    ecc e = ecc(10007,1,6);
 
     message *m = new message;
-    m->x = 2; m->y = 4;
+    m->x = 3906; m->y = 6858;
     cryptedMessage *C = e.encrypt(m);
     cout<<"Ciphered Text Message\n";
     cout<<"C1: ("<<C->C1->x<<", "<<C->C1->y<<")\n";

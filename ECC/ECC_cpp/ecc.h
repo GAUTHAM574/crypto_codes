@@ -1,5 +1,5 @@
-#ifndef MYHEADER_H
-#define MYHEADER_H
+#ifndef ECC_H
+#define ECC_H
 
 #include<math.h>
 #include<random>
@@ -97,10 +97,10 @@ long long ecc::extended_euclidean(long long a, long long b, long long s1, long l
     if (b == 1){
         return mod(s2);
     }
-    if ( b > a ){
+    if (b > a){
         long long t = b; b = a; a = t;
     }
-    if(b == 0 ){
+    if(b == 0){
         cout<<"Error: unexpected error\n";
         exit(1);
     }
@@ -111,9 +111,9 @@ long long ecc::extended_euclidean(long long a, long long b, long long s1, long l
 
 // mod performs modulus operation.
 long long ecc::mod(long long x){
-    if( x >= 0)  return x%ecc::p;
+    if(x >= 0)  return x%ecc::p;
     long q = ((-x) / ecc::p)+1;
-    return (x + q * ecc::p ) % ecc::p;
+    return (x + q * ecc::p) % ecc::p;
 }
 
 // get_random generates a random number
@@ -126,7 +126,7 @@ long long ecc::get_random(){
 
 //pow raisea a base to a exponent and perform modulo operation with p
 long long ecc::power(long long base, long long exp) {
-    if ( exp == 0 ) return 1;
+    if (exp == 0) return 1;
     exp = exp % (ecc::p - 1); // fermet's little theorem a^(p-1) mod p = 1 mod p
     string exp_bin = "";  // represented in reverse order
     while (exp > 0){
@@ -149,8 +149,6 @@ long long ecc::power(long long base, long long exp) {
 
 // create_points creates a point dynamically and return a pointer to it.
 point * ecc::create_point(long long x, long long y){
-    mem++;
-
     return new point({x,y});
 }
 
@@ -169,7 +167,7 @@ long long ecc::get_slope(point *p1, point *p2){
         return (num * extended_euclidean(ecc::p, denom, 0, 1)) % ecc::p ;
     }
     long long num = (mod(p2->y - p1->y)), denom = extended_euclidean(ecc::p, mod(p2->x - p1->x), 0, 1);
-    return mod(num * denom );
+    return mod(num * denom);
 }
 
 // is_identity_point will check if the point is identity
@@ -187,18 +185,18 @@ point * ecc::add_points(point *p1, point *p2){
     } 
     long long slope = ecc::get_slope(p1, p2);
     long long x = mod(slope*slope - p1->x - p2->x);
-    long long y = mod( -(p1->y + slope*(x - p1->x)));
+    long long y = mod(-(p1->y + slope*(x - p1->x)));
 
     return ecc::create_point(x, y);
 }
 
 // sub_points subtracts two points in the curve.
 point * ecc::sub_points(point *p1, point *p2){
-    if (is_identity_point(p2) ) return p1;
+    if (is_identity_point(p2) ) {
+        return is_identity_point(p1) ? ecc::create_point(-1, -1) : ecc::create_point(p1->x, p1->y);
+    }
     point *t = ecc::create_point(p2->x, mod(-(p2->y)));
-    point * res = add_points(p1, t);
-    mem--;
-
+    point *res = add_points(p1, t);
     delete t;
     return res;
 }
@@ -215,9 +213,7 @@ point *ecc::multiply_point( long long x, point *p1){
     }
     t = ecc::add_points(p1, p1);
     for(  long long i=3; i<=x; i++){
-        point* del = t;
         t = ecc::add_points(t, p1);
-        delete del;
     }
     return t;
 }
@@ -248,7 +244,7 @@ void ecc::set_generator(){
         exit(0);
     }
     
-    long long randInd = (get_random() * get_random() ) % len;
+    long long randInd = (get_random() * get_random()) % len;
     ecc::generator = cyclic_sub_group[randInd];
     for ( long long i = 0; i < len; i++) {
         if( i != randInd ) {
@@ -270,7 +266,6 @@ void ecc::generate_keys(){
 
 // create_message creates a message dynamically and return a pointer to it.
 message * ecc::create_message(long long x, long long y) {
-
     return new message({x,y});
 }
 
@@ -301,5 +296,4 @@ message* ecc::decrypt(cryptedMessage *C){
 message* ecc::decrypt_backdoor(cryptedMessage * C){
     return decrypt(C);
 }
-
 #endif
